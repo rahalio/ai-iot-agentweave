@@ -1,0 +1,623 @@
+openapi: 3.0.3
+info:
+  title: AgentWeave
+  version: 0.1.0
+  description: >-
+    Configuration studio for embodied IoT agent fleets. Captures variability
+    models, evaluative feedback, and context-triggered group reconfigurations
+    with human approval, canaries, and kill-switch rollback.
+  x-product-slug: ai-iot-agentweave
+  x-source: ai-in-iot/1812.06791v1/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Models
+  - name: Agents
+  - name: Groups
+  - name: Feedback
+  - name: Proposals
+  - name: Approvals
+paths:
+  /v1/variability-models:
+    get:
+      operationId: listVariabilityModels
+      tags: [Models]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Variability models
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListEnvelopeVariabilityModel" }
+    post:
+      operationId: createVariabilityModel
+      tags: [Models]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VariabilityModelCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeVariabilityModel" }
+  /v1/variability-models/{modelId}:
+    get:
+      operationId: getVariabilityModel
+      tags: [Models]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: modelId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Model
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeVariabilityModel" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/agents:
+    get:
+      operationId: listAgents
+      tags: [Agents]
+      security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: groupId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agents
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListEnvelopeAgentInstance" }
+    post:
+      operationId: registerAgent
+      tags: [Agents]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentInstanceCreate" }
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeAgentInstance" }
+  /v1/groups:
+    get:
+      operationId: listAgentGroups
+      tags: [Groups]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListEnvelopeAgentGroup" }
+    post:
+      operationId: createAgentGroup
+      tags: [Groups]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentGroupCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeAgentGroup" }
+  /v1/groups/{groupId}/context:
+    post:
+      operationId: submitContextSnapshot
+      tags: [Groups]
+      security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContextSnapshotCreate" }
+      responses:
+        "201":
+          description: Recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeContextSnapshot" }
+  /v1/feedback:
+    get:
+      operationId: listFeedbackEvents
+      tags: [Feedback]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: groupId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Feedback
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListEnvelopeFeedbackEvent" }
+    post:
+      operationId: createFeedbackEvent
+      tags: [Feedback]
+      security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedbackEventCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeFeedbackEvent" }
+  /v1/proposals:
+    get:
+      operationId: listReconfigProposals
+      tags: [Proposals]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema: { type: string, enum: [draft, pending_approval, canary, active, rejected, killed] }
+      responses:
+        "200":
+          description: Proposals
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ListEnvelopeReconfigProposal" }
+    post:
+      operationId: createReconfigProposal
+      tags: [Proposals]
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReconfigProposalCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeReconfigProposal" }
+  /v1/proposals/{proposalId}/approve:
+    post:
+      operationId: approveReconfigProposal
+      tags: [Approvals]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApprovalCreate" }
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeReconfigProposal" }
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/proposals/{proposalId}/canary:
+    post:
+      operationId: startCanaryRollout
+      tags: [Approvals]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cohortAgentIds]
+              properties:
+                cohortAgentIds:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Canary started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeReconfigProposal" }
+  /v1/proposals/{proposalId}/kill-switch:
+    post:
+      operationId: fireKillSwitch
+      tags: [Approvals]
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [operatorId, reason]
+              properties:
+                operatorId: { type: string }
+                reason: { type: string }
+      responses:
+        "200":
+          description: Killed / rolled back
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeReconfigProposal" }
+  /v1/agents/{agentId}/config-telemetry:
+    post:
+      operationId: reportConfigTelemetry
+      tags: [Agents]
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [configVersionId]
+              properties:
+                configVersionId: { type: string }
+                reportedAt: { type: string, format: date-time }
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DataEnvelopeAgentInstance" }
+components:
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+
+  responses:
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    UnprocessableEntity:
+      description: Unprocessable entity
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+
+    VariabilityModel:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        sensorFeatures:
+          type: array
+          items: { type: string }
+        actuatorFeatures:
+          type: array
+          items: { type: string }
+        behaviorFeatures:
+          type: array
+          items: { type: string }
+    VariabilityModelCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        sensorFeatures:
+          type: array
+          items: { type: string }
+        actuatorFeatures:
+          type: array
+          items: { type: string }
+        behaviorFeatures:
+          type: array
+          items: { type: string }
+    AgentInstance:
+      type: object
+      required: [id, bodyType, status]
+      properties:
+        id: { type: string }
+        bodyType: { type: string }
+        groupId: { type: string }
+        variabilityModelId: { type: string }
+        activeConfigVersionId: { type: string }
+        status: { type: string, enum: [registered, live, degraded, retired] }
+    AgentInstanceCreate:
+      type: object
+      required: [bodyType, variabilityModelId]
+      properties:
+        bodyType: { type: string }
+        variabilityModelId: { type: string }
+        groupId: { type: string }
+    AgentGroup:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        mission: { type: string }
+        safetyClass: { type: string, enum: [standard, public_safety] }
+    AgentGroupCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        mission: { type: string }
+        safetyClass: { type: string, enum: [standard, public_safety] }
+    ContextSnapshot:
+      type: object
+      required: [id, groupId, capturedAt]
+      properties:
+        id: { type: string }
+        groupId: { type: string }
+        capturedAt: { type: string, format: date-time }
+        attributes:
+          type: object
+          additionalProperties: true
+    ContextSnapshotCreate:
+      type: object
+      required: [capturedAt]
+      properties:
+        capturedAt: { type: string, format: date-time }
+        attributes:
+          type: object
+          additionalProperties: true
+    FeedbackEvent:
+      type: object
+      required: [id, score, createdAt]
+      properties:
+        id: { type: string }
+        groupId: { type: string }
+        configVersionId: { type: string }
+        score: { type: number }
+        source: { type: string, enum: [operator, kpi, citizen] }
+        comment: { type: string }
+        createdAt: { type: string, format: date-time }
+    FeedbackEventCreate:
+      type: object
+      required: [score]
+      properties:
+        groupId: { type: string }
+        configVersionId: { type: string }
+        score: { type: number }
+        source: { type: string, enum: [operator, kpi, citizen] }
+        comment: { type: string }
+    ReconfigProposal:
+      type: object
+      required: [id, groupId, status]
+      properties:
+        id: { type: string }
+        groupId: { type: string }
+        status: { type: string, enum: [draft, pending_approval, canary, active, rejected, killed] }
+        proposedConfigVersionId: { type: string }
+        priorSafeConfigVersionId: { type: string }
+        rationale: { type: string }
+    ReconfigProposalCreate:
+      type: object
+      required: [groupId, proposedConfigVersionId]
+      properties:
+        groupId: { type: string }
+        proposedConfigVersionId: { type: string }
+        priorSafeConfigVersionId: { type: string }
+        rationale: { type: string }
+        requiresSafetyApproval: { type: boolean }
+    ApprovalCreate:
+      type: object
+      required: [approverId]
+      properties:
+        approverId: { type: string }
+        notes: { type: string }
+
+    DataEnvelopeVariabilityModel:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/VariabilityModel" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeVariabilityModel:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/VariabilityModel" }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+
+
+    DataEnvelopeAgentInstance:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/AgentInstance" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeAgentInstance:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/AgentInstance" }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+
+
+    DataEnvelopeAgentGroup:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/AgentGroup" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeAgentGroup:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/AgentGroup" }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+
+
+    DataEnvelopeContextSnapshot:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/ContextSnapshot" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeContextSnapshot:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/ContextSnapshot" }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+
+
+    DataEnvelopeFeedbackEvent:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/FeedbackEvent" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeFeedbackEvent:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/FeedbackEvent" }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+
+
+    DataEnvelopeReconfigProposal:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/ReconfigProposal" }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+    ListEnvelopeReconfigProposal:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/ReconfigProposal" }
+            nextCursor: { type: string }
+        meta: { $ref: "#/components/schemas/ResponseMeta" }
+
